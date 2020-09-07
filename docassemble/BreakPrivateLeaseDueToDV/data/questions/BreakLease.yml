@@ -1,0 +1,156 @@
+---
+question: |
+  Have you been a victim of domestic violence, stalking, or sexual assault?
+yesno: user_is_victim
+---
+question: |
+  Has a member of your household been a victim of domestic violence, stalking, or sexual assault?
+yesno: household_member_is_victim
+---
+id: nobody is victim
+event: nobody_is_victim
+question: |
+  You should only use this form if you or a family member has been a victim of domestic violence, sexual assault, or stalking.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---  
+question: |
+  When did the last incident take place?
+fields:
+  - Date of last incident: incident_date
+    datatype: date
+---
+question: |
+  Do you have reasonable fear of imminent and serious physical harm?
+yesno: reasonable_fear  
+---
+id: no fear
+event: no_fear
+question: |
+  You are not eligible to break your lease since the last incident took place more than 3 months ago and you do not have fear of imminent and serious physical harm.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+question: |
+  Are you still living in the unit?
+yesno: still_in_unit
+---
+question: | 
+  Do you plan to return to the unit?
+yesno: plan_to_return
+---
+question: |
+  When did you move out of the unit?
+fields:
+  - I moved out on: moved_out_date
+    datatype: date
+---
+question: |
+  When will you move out of the unit?
+fields:
+  - I will move out on: moving_out_date
+    datatype: date
+---  
+question: |
+  Did you leave any belongings behind?
+yesno: left_belongings
+---
+question: |
+  Describe the belongings you left behind.
+fields:
+  - I left behind: belongings_description
+    input type: area
+---
+question: |
+  What would you like the landlord to do with your belongings?
+fields:
+  - I would like the landlord to: belongings_disposition
+    input type: radio
+    choices:
+      - Move them into a storage facility at my expense
+      - Throw them away
+      - Gather the items so I can pick them up?
+      - Other remedies
+---
+question: |
+  Do you have a valid restraining order 209A or 258E
+---
+question: |
+  What is your name?
+  What is your landlord's name?
+  What is your new address?
+  What is your landlord's address?
+  When did you move into your apartment?
+  When does your lease expire?
+  Did you give your landlord a security deposit?
+  Did you give your landlord last month's rent?
+  Do you live in private housing or public housing?
+  Do you have a housing subsidy like a Section 8 voucher, mobile voucher, etc.
+  Who administers your voucher?
+
+---
+mandatory: true
+id: interview_order
+code: |
+  user_is_victim
+  if not user_is_victim:
+    household_member_is_victim
+  if not user_is_victim and not household_member_is_victim:
+    nobody_is_victim
+  if incident_date < current_datetime().minus(months=3):
+    reasonable_fear  
+    if not reasonable_fear:
+      no_fear
+  still_in_unit  
+  if not still_in_unit:
+    plan_to_return
+    if not plan_to_return:
+      moved_out_date
+    else:
+      moving_out_date
+  else:
+    moving_out_date
+  left_belongings  
+  if left_belongings:
+    belongings_description
+    belongings_disposition
+  
+  
+  result_screen
+---
+event: result_screen
+question: |
+  Result
+subquestion: |
+  From 
+  
+  Dear Landlord
+  
+  % if user_is_victim:
+  I am a victim of domestic violence, sexual assault, or stalking.  
+  % elif household_member_is_victim:
+  A member of my household is a victim of domestic violence, sexual assault, or stalking.  
+  % endif
+  
+  % if incident_date >= current_datetime().minus(months=3):
+  The incident of domestic violence, sexual assault, or stalking has occured within 3 months.
+  % elif (incident_date < current_datetime().minus(months=3)) and reasonable_fear:
+    % if user_is_victim:
+      I have reasonable fear of imminent and serious physical harm.
+    % elif household_member_is_victim:
+      My household member has reasonable fear of imminent and serious physical harm.
+    % endif  
+  % endif
+  
+  % if not still_in_unit and not plan_to_return:
+  I left the unit on ${moved_out_date} and will not return.
+  % else:
+  I will be leaving the unit on ${moving_out_date} and will not return.
+  % endif
+  
+  % if left_belongings:
+    I have left behind ${belongings_description}.  
+    I would like you to ${belongings_disposition}.
+  % endif  
